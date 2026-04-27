@@ -1,0 +1,96 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      // Bootstrapped admin - using user's email from runtime context (aliased here as placeholder)
+      return isSignedIn() && (request.auth.token.email == 'alyelshahawi02@gmail.com' || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // --- Validation Blueprints ---
+
+    function isValidVehicle(data) {
+      return data.keys().hasAll(['make', 'model', 'year', 'licensePlate', 'currentMileage', 'userId', 'createdAt'])
+        && data.keys().size() == 7
+        && data.make is string && data.make.size() <= 64
+        && data.model is string && data.model.size() <= 64
+        && data.year is number && data.year >= 1886 && data.year <= 2100
+        && data.licensePlate is string && data.licensePlate.size() <= 20
+        && data.currentMileage is number && data.currentMileage >= 0
+        && data.userId == request.auth.uid
+        && data.createdAt == request.time;
+    }
+
+    function isValidMaintenanceLog(data) {
+      return data.keys().hasAll(['vehicleId', 'date', 'mileage', 'serviceType', 'cost', 'location', 'notes'])
+        && data.keys().size() == 7
+        && data.vehicleId is string
+        && data.serviceType is string && data.serviceType.size() <= 200
+        && data.cost is number && data.cost >= 0
+        && data.mileage is number && data.mileage >= 0;
+    }
+
+    // --- Collection Rules ---
+
+    match /vehicles/{vehicleId} {
+      allow read: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isEmailVerified() && isValidId(vehicleId) && isValidVehicle(incoming());
+      allow update: if isEmailVerified() 
+        && existing().userId == request.auth.uid 
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == existing().createdAt
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['currentMileage', 'licensePlate', 'make', 'model', 'year'])
+        );
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /maintenanceLogs/{logId} {
+      allow read: if isSignedIn() && get(/databases/$(database)/documents/vehicles/$(existing().vehicleId)).data.userId == request.auth.uid;
+      allow create: if isEmailVerified() 
+        && isValidId(logId) 
+        && isValidMaintenanceLog(incoming())
+        && get(/databases/$(database)/documents/vehicles/$(incoming().vehicleId)).data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && get(/databases/$(database)/documents/vehicles/$(existing().vehicleId)).data.userId == request.auth.uid;
+    }
+
+    match /fuelLogs/{logId} {
+      allow read: if isSignedIn() && get(/databases/$(database)/documents/vehicles/$(existing().vehicleId)).data.userId == request.auth.uid;
+      allow create: if isEmailVerified() 
+        && isValidId(logId)
+        && get(/databases/$(database)/documents/vehicles/$(incoming().vehicleId)).data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && get(/databases/$(database)/documents/vehicles/$(existing().vehicleId)).data.userId == request.auth.uid;
+    }
+
+    match /shops/{shopId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

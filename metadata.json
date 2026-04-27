@@ -1,0 +1,12 @@
+{
+  "name": "AutoTrac",
+  "description": "Smart vehicle management app tracking mileage, maintenance schedules, fuel expenses, and local verified repair shops.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "Firebase Persistence",
+    "Gemini-Powered Maintenance Advice",
+    "Geo-localized Service Discovery"
+  ]
+}

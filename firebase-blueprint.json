@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Represents a user's car with its basic identification and current mileage.",
+      "type": "object",
+      "properties": {
+        "make": { "type": "string", "description": "Car manufacturer (e.g., Toyota)" },
+        "model": { "type": "string", "description": "Car model (e.g., Camry)" },
+        "year": { "type": "number", "description": "Manufacturing year" },
+        "licensePlate": { "type": "string", "description": "Legal license plate identifier" },
+        "currentMileage": { "type": "number", "description": "The latest odometer reading" },
+        "userId": { "type": "string", "description": "Owner's unique ID" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["make", "model", "licensePlate", "currentMileage", "userId", "createdAt"]
+    },
+    "MaintenanceLog": {
+      "title": "Maintenance Log",
+      "description": "Records of maintenance services performed on a vehicle.",
+      "type": "object",
+      "properties": {
+        "vehicleId": { "type": "string", "description": "Reference to the vehicle" },
+        "date": { "type": "string", "format": "date-time" },
+        "mileage": { "type": "number", "description": "Odometer at time of service" },
+        "serviceType": { "type": "string", "description": "Type of service (e.g., Oil Change, Brake Pad Replacement)" },
+        "cost": { "type": "number", "description": "Total cost of service" },
+        "location": { "type": "string", "description": "Address or name of the shop" },
+        "notes": { "type": "string" }
+      },
+      "required": ["vehicleId", "date", "mileage", "serviceType", "cost"]
+    },
+    "FuelLog": {
+      "title": "Fuel Log",
+      "description": "Records of fuel purchases for a vehicle.",
+      "type": "object",
+      "properties": {
+        "vehicleId": { "type": "string", "description": "Reference to the vehicle" },
+        "date": { "type": "string", "format": "date-time" },
+        "mileage": { "type": "number", "description": "Odometer at time of fueling" },
+        "volume": { "type": "number", "description": "Amount of fuel purchased (liters/gallons)" },
+        "costPerUnit": { "type": "number", "description": "Price per unit of fuel" },
+        "totalCost": { "type": "number", "description": "Total cost of fueling" },
+        "location": { "type": "string", "description": "Gas station location" }
+      },
+      "required": ["vehicleId", "date", "mileage", "volume", "totalCost"]
+    },
+    "ShopProfile": {
+      "title": "Shop Profile",
+      "description": "Information about verified maintenance areas and their specializations.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "location": {
+            "type": "object",
+            "properties": {
+                "lat": { "type": "number" },
+                "lng": { "type": "number" }
+            }
+        },
+        "specialties": { "type": "array", "items": { "type": "string" }, "description": "What they focus on/privilege in fixing" },
+        "averagePrices": { "type": "object", "description": "Typical prices for common services (e.g. { 'Oil Change': 50 })" },
+        "verified": { "type": "boolean" }
+      },
+      "required": ["name", "address", "specialties"]
+    }
+  },
+  "firestore": {
+    "vehicles": {
+      "schema": "Vehicle",
+      "description": "Collection of user vehicles"
+    },
+    "maintenanceLogs": {
+      "schema": "MaintenanceLog",
+      "description": "Maintenance history for all vehicles"
+    },
+    "fuelLogs": {
+      "schema": "FuelLog",
+      "description": "Fuel consumption history for all vehicles"
+    },
+    "shops": {
+        "schema": "ShopProfile",
+        "description": "Global list of verified maintenance centers"
+    }
+  }
+}
